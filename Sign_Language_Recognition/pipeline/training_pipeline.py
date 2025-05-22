@@ -3,16 +3,17 @@ from Sign_Language_Recognition.logger import logging
 from Sign_Language_Recognition.exception import SignException
 from Sign_Language_Recognition.components.data_ingestion import DataIngestion
 from Sign_Language_Recognition.components.data_validation import DataValidation
-#from Sign_Language_Recognition.components.model_trainer import ModelTrainer
+from Sign_Language_Recognition.components.model_trainer import ModelTrainer
 #from Sign_Language_Recognition.components.model_pusher import ModelPusher
-from Sign_Language_Recognition.entity.config_entity import (DataIngestionConfig, DataValidationConfig)
-from Sign_Language_Recognition.entity.artifacts_entity import (DataIngestionArtifact,DataValidationArtifact)
+from Sign_Language_Recognition.entity.config_entity import (DataIngestionConfig, DataValidationConfig, ModelTrainerConfig)
+from Sign_Language_Recognition.entity.artifacts_entity import (DataIngestionArtifact,DataValidationArtifact, ModelTrainerArtifact)
 
 
 class TrainPipeline:
     def __init__(self):
         self.data_ingestion_config = DataIngestionConfig()
         self.data_validation_config = DataValidationConfig()
+        self.model_trainer_config = ModelTrainerConfig()
 
     def start_data_ingestion(self)-> DataIngestionArtifact:
         try:
@@ -60,6 +61,18 @@ class TrainPipeline:
         except Exception as e:
             raise SignException(e, sys) from e
         
+
+    def start_model_trainer(self) -> ModelTrainerArtifact:
+        try:
+            model_trainer = ModelTrainer(
+                model_trainer_config=self.model_trainer_config
+            )
+            model_trainer_artifact = model_trainer.initiate_model_trainer()
+            return model_trainer_artifact
+        except Exception as e:
+            raise SignException(e, sys) from e
+            
+        
     
     
         
@@ -69,6 +82,11 @@ class TrainPipeline:
             data_validation_artifact = self.start_data_validation(
                 data_ingestion_artifact=data_ingestion_artifact
             )
+
+            if data_validation_artifact.validation_status == True:
+                model_trainer_artifact = self.start_model_trainer()
+            else:
+                raise Exception("Data validation failed. Model training cannot be performed.")
 
         
 
