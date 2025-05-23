@@ -47,3 +47,9 @@ class ModelTrainerConfig:
     no_epochs = MODEL_TRAINER_NO_EPOCHS
 
     batch_size = MODEL_TRAINER_BATCH_SIZE
+
+
+@dataclass
+class ModelPusherConfig:
+    model_pusher_github_model_url: str = MODEL_PUSHER_GITHUB_MODEL_URL
+    model_local_save_path: str = MODEL_LOCAL_SAVE_PATH

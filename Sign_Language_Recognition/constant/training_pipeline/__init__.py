@@ -33,3 +33,11 @@ MODEL_TRAINER_PRETRAINED_WEIGHT_NAME: str = "yolov5s.pt"
 MODEL_TRAINER_NO_EPOCHS: int = 1
 
 MODEL_TRAINER_BATCH_SIZE: int = 16
+
+
+"""
+MODEL PUSHER related constant start with MODEL_PUSHER var name
+"""
+GITHUB_REPO_URL = "https://github.com/Sahil9192/Sign_Language_Detection"
+MODEL_PUSHER_GITHUB_MODEL_URL = f"{GITHUB_REPO_URL}/releases/download/v1.0/best.pt"
+MODEL_LOCAL_SAVE_PATH = os.path.join(ARTIFACTS_DIR, "model_trainer", "best.pt")
