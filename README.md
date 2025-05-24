@@ -1,5 +1,5 @@
 # 🚀Sign_Language_Detection
-T- his project aims to bridge communication barriers by detecting and recognizing hand gestures from sign language using computer vision and deep learning. Leveraging a camera and the YOLOv5 object detection model, it enables real-time gesture recognition for more inclusive interaction.
+This project aims to bridge communication barriers by detecting and recognizing hand gestures from sign language using computer vision and deep learning. Leveraging a camera and the YOLOv5 object detection model, it enables real-time gesture recognition for more inclusive interaction.
 
 ---
 
