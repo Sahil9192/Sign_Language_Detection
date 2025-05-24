@@ -25,8 +25,8 @@ T- his project aims to bridge communication barriers by detecting and recognizin
 ---
 
 ## 📁 Project Structure
-
-Sign_Language_Detection/
+```bash
+- Sign_Language_Detection/
 │
 ├── app.py # Flask app entry point
 ├── requirements.txt # Project dependencies
@@ -44,7 +44,7 @@ Sign_Language_Detection/
 │
 └── README.md # Project documentation
 
-
+```
 ## 🛠️How to run:
 
 ```bash
