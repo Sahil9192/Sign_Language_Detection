@@ -1,12 +1,15 @@
 import sys
 import os
 import uuid
+import base64
+import glob
 from Sign_Language_Recognition.pipeline.training_pipeline import TrainPipeline
 from Sign_Language_Recognition.exception import SignException
 from Sign_Language_Recognition.utils.main_utils import decodeImage, encodeImageIntoBase64
 from flask import Flask, request, jsonify, render_template, Response
 from flask_cors import CORS, cross_origin
 import subprocess
+import traceback
 
 app = Flask(__name__)
 CORS(app)
@@ -32,70 +35,81 @@ def trainRoute():
 @cross_origin()
 def predictRoute():
     try:
-        image = request.json['image']
+        data = request.get_json()
+        image_data = data['image']
+        image_bytes = base64.b64decode(image_data)
 
-        # Create a unique filename
-        unique_filename = f"inputImage_{uuid.uuid4().hex}.jpg"
+        os.makedirs("input_images", exist_ok=True)
+        filename = f"inputImage_{uuid.uuid4().hex}.jpg"
+        image_path = os.path.join("input_images", filename)
+        with open(image_path, "wb") as f:
+            f.write(image_bytes)
 
-        # Save inside yolov5 folder so detect.py can find it easily
-        yolov5_folder = os.path.join(os.getcwd(), "yolov5")
-        input_path = os.path.join(yolov5_folder, unique_filename)
-
-        decodeImage(image, input_path)
-
-        # Run detection using subprocess
-        detect_cmd = [
-            "python", os.path.join(yolov5_folder, "detect.py"),
-            "--weights", os.path.join(yolov5_folder, "yolov5s.pt"),
+        # Run YOLOv5 detection
+        relative_path = image_path.replace("\\", "/")
+        command = [
+            "python", "yolov5/detect.py",
+            "--weights", "yolov5/yolov5s.pt",
             "--img", "416",
             "--conf", "0.5",
-            "--source", input_path
+            "--source", relative_path,
+            "--save-txt",
+            "--project", "runs",
+            "--name", "detect",
+            "--exist-ok"
         ]
-        subprocess.run(detect_cmd, check=True)
+        subprocess.run(command, check=True)
 
-        # Output image path - yolov5 saves outputs here with same filename
-        output_path = os.path.join(yolov5_folder, "runs", "detect", "exp", unique_filename)
+        # Search for latest image
+        output_dir = os.path.join("runs", "detect")
+        image_files = glob.glob(os.path.join(output_dir, "exp*", "*.jpg"))
 
-        # Encode output image to base64
-        opencodedbase64 = encodeImageIntoBase64(output_path)
+        # If no exp*/ image found, search in detect/ directly (fallback)
+        if not image_files:
+            image_files = glob.glob(os.path.join(output_dir, "*.jpg"))
 
-        # Clean up input and output files
-        if os.path.exists(input_path):
-            os.remove(input_path)
-        # Remove the whole 'exp' folder after processing to keep things clean
-        exp_folder = os.path.join(yolov5_folder, "runs", "detect", "exp")
-        if os.path.exists(exp_folder):
-            subprocess.run(["rm", "-rf", exp_folder], check=True)
+        if not image_files:
+            raise FileNotFoundError("No output image found in YOLO runs folder.")
 
-        result = {"image": opencodedbase64.decode('utf-8')}
-        return jsonify(result)
+        output_image_path = max(image_files, key=os.path.getctime)
+
+        with open(output_image_path, "rb") as out_img:
+            result_bytes = out_img.read()
+
+        result_base64 = base64.b64encode(result_bytes).decode("utf-8")
+        return jsonify({"image": result_base64})
 
     except Exception as e:
-        print(f"Error during prediction: {e}")
-        return Response(f"Prediction failed: {str(e)}", status=500)
+        print("Error during prediction:", str(e))
+        return jsonify({"error": f"Prediction failed: {str(e)}"}), 500
+
+
 
 @app.route("/live", methods=['GET'])
 @cross_origin()
 def predictLive():
     try:
         yolov5_folder = os.path.join(os.getcwd(), "yolov5")
-        subprocess.run([
+
+        subprocess.Popen([
             "python", os.path.join(yolov5_folder, "detect.py"),
             "--weights", os.path.join(yolov5_folder, "yolov5s.pt"),
             "--img", "416",
             "--conf", "0.5",
             "--source", "0"
-        ], check=True)
+        ])
 
-        # Clean up runs folder after live detection stops
-        runs_folder = os.path.join(yolov5_folder, "runs")
-        if os.path.exists(runs_folder):
-            subprocess.run(["rm", "-rf", runs_folder], check=True)
-        return "Camera starting!!"
+        return "Camera started in a new window!"
 
     except Exception as e:
         print(f"Error starting live detection: {e}")
         return Response(f"Failed to start live detection: {str(e)}", status=500)
+
+# After live detection completes
+        runs_folder = os.path.join(yolov5_folder, "runs")
+    if os.path.exists(runs_folder):
+        shutil.rmtree(runs_folder)
+
 
 if __name__ == "__main__":
     clApp = ClientApp()
