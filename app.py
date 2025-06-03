@@ -3,6 +3,8 @@ import os
 import uuid
 import base64
 import glob
+from config import ModelConfig
+import shutil
 from Sign_Language_Recognition.pipeline.training_pipeline import TrainPipeline
 from Sign_Language_Recognition.exception import SignException
 from Sign_Language_Recognition.utils.main_utils import decodeImage, encodeImageIntoBase64
@@ -49,7 +51,7 @@ def predictRoute():
         relative_path = image_path.replace("\\", "/")
         command = [
             "python", "yolov5/detect.py",
-            "--weights", "yolov5/yolov5s.pt",
+            "--weights", ModelConfig.WEIGHTS_PATH,
             "--img", "416",
             "--conf", "0.5",
             "--source", relative_path,
@@ -99,18 +101,18 @@ def predictLive():
             "--source", "0"
         ])
 
+        # Optional cleanup after live detection starts (if applicable)
+        runs_folder = os.path.join(yolov5_folder, "runs")
+        if os.path.exists(runs_folder):
+            shutil.rmtree(runs_folder)
+
         return "Camera started in a new window!"
 
     except Exception as e:
         print(f"Error starting live detection: {e}")
         return Response(f"Failed to start live detection: {str(e)}", status=500)
 
-# After live detection completes
-        runs_folder = os.path.join(yolov5_folder, "runs")
-    if os.path.exists(runs_folder):
-        shutil.rmtree(runs_folder)
-
 
 if __name__ == "__main__":
     clApp = ClientApp()
-    app.run(host="0.0.0.0", port=8080, debug=True)
+    app.run(host="0.0.0.0", port=8081, debug=True)
