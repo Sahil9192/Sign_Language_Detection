@@ -45,8 +45,9 @@ class ModelTrainerConfig:
     )
 
     weight_name: str = MODEL_TRAINER_PRETRAINED_WEIGHT_NAME
-    no_epochs: str = MODEL_TRAINER_NO_EPOCHS
-    batch_size: str = MODEL_TRAINER_BATCH_SIZE
+    no_epochs: int = MODEL_TRAINER_NO_EPOCHS
+    batch_size: int = MODEL_TRAINER_BATCH_SIZE
+
 
     model_save_path: str = os.path.join("yolov5", "my_model.pt")  
 

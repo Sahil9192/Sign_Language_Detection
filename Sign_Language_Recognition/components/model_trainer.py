@@ -6,6 +6,7 @@ from Sign_Language_Recognition.logger import logging
 from Sign_Language_Recognition.exception import SignException
 from Sign_Language_Recognition.entity.config_entity import ModelTrainerConfig
 from Sign_Language_Recognition.entity.artifacts_entity import ModelTrainerArtifact
+from Sign_Language_Recognition.utils.main_utils import get_latest_yolov5_best_model_path
 
 class ModelTrainer:
     def __init__(
@@ -38,8 +39,15 @@ class ModelTrainer:
                 yaml.dump(config, f)
 
             os.system(f"cd yolov5/ && python train.py --img 416 --batch {self.model_trainer_config.batch_size} --epochs {self.model_trainer_config.no_epochs} --data ../data.yaml --cfg ./models/custom_yolov5s.yaml --weights {self.model_trainer_config.weight_name} --name yolov5s_results  --cache")
+            best_model_path = get_latest_yolov5_best_model_path()
             final_model_path = os.path.join("yolov5", "my_model.pt")
-            os.system(f"cp yolov5/runs/train/yolov5s_results/weights/best.pt {final_model_path}")
+            os.makedirs(os.path.dirname(final_model_path), exist_ok=True)
+            os.system(f"cp {best_model_path} {final_model_path}")
+
+            best_model_path = get_latest_yolov5_best_model_path()  # This dynamically finds latest best.pt
+            os.makedirs(os.path.dirname(final_model_path), exist_ok=True)
+            os.system(f"cp {best_model_path} {final_model_path}")
+
 
             # Optional: also copy to artifact dir
             os.makedirs(self.model_trainer_config.model_trainer_dir, exist_ok=True)

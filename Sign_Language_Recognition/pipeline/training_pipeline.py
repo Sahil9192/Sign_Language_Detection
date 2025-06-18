@@ -7,7 +7,9 @@ from Sign_Language_Recognition.components.model_trainer import ModelTrainer
 from Sign_Language_Recognition.components.model_pusher import ModelPusher
 from Sign_Language_Recognition.entity.config_entity import (DataIngestionConfig, DataValidationConfig, ModelTrainerConfig, ModelPusherConfig)
 from Sign_Language_Recognition.entity.artifacts_entity import (DataIngestionArtifact,DataValidationArtifact, ModelTrainerArtifact,ModelPusherArtifact)
-
+from Sign_Language_Recognition.utils.main_utils import get_latest_yolov5_best_model_path
+import shutil
+import glob
 
 class TrainPipeline:
     def __init__(self):
@@ -86,6 +88,15 @@ class TrainPipeline:
             raise SignException(e, sys)
         
     
+
+    def get_latest_yolov5_best_model_path():
+        weight_paths = glob.glob("yolov5/runs/train/yolov5s_results*/weights/best.pt")
+        if not weight_paths:
+            raise FileNotFoundError("No YOLOv5 trained model found in yolov5/runs/train/")
+        return max(weight_paths, key=os.path.getctime)
+
+        
+    
     
         
     def run_pipeline(self) -> None:
@@ -93,17 +104,27 @@ class TrainPipeline:
             data_ingestion_artifact = self.start_data_ingestion()
             data_validation_artifact = self.start_data_validation(
                 data_ingestion_artifact=data_ingestion_artifact
-            )
+        )
 
             if data_validation_artifact.validation_status == True:
                 model_trainer_artifact = self.start_model_trainer()
-                model_pusher_artifact = self.start_model_pusher(model_trainer_artifact=model_trainer_artifact)
+                model_pusher_artifact = self.start_model_pusher(
+                    model_trainer_artifact=model_trainer_artifact
+            )
+
+            # 🔍 Get latest YOLOv5 trained model path dynamically
+                source_model_path = get_latest_yolov5_best_model_path()
+
+                destination_model_path = os.path.join("yolov5", "my_model.pt")
+                os.makedirs(os.path.dirname(destination_model_path), exist_ok=True)
+                shutil.copy(source_model_path, destination_model_path)
+
+                logging.info(f"Copied trained model from {source_model_path} to {destination_model_path}")
+
             else:
                 raise Exception("Data validation failed. Model training cannot be performed.")
 
-        
-
-
         except Exception as e:
             raise SignException(e, sys)
+
 

@@ -29,9 +29,19 @@ def trainRoute():
     try:
         obj = TrainPipeline()
         obj.run_pipeline()
-        return "Training Successful!!"
+
+        # ✅ Copy trained model (best.pt) to yolov5/my_model.pt
+        source_model_path = os.path.join("artifacts", "model_trainer", "best.pt")
+        destination_model_path = os.path.join("yolov5", "my_model.pt")
+        if not os.path.exists("yolov5"):
+            raise FileNotFoundError("yolov5 folder not found. Please clone it before training.")
+
+        shutil.copy(source_model_path, destination_model_path)
+
+        return "Training Successful! Model copied to yolov5/my_model.pt"
     except Exception as e:
         return f"Training failed: {str(e)}", 500
+
 
 @app.route("/predict", methods=['POST'])
 @cross_origin()
@@ -50,16 +60,24 @@ def predictRoute():
         # Run YOLOv5 detection
         relative_path = image_path.replace("\\", "/")
         command = [
-            "python", "yolov5/detect.py",
-            "--weights", ModelConfig.WEIGHTS_PATH,
+            sys.executable,  # uses the active Python interpreter path
+            os.path.join("yolov5", "detect.py"),
+            "--weights", os.path.join("yolov5", "my_model.pt"),
             "--img", "416",
-            "--conf", "0.5",
+            "--conf", "0.25",
             "--source", relative_path,
             "--save-txt",
+            "--save-conf",
             "--project", "runs",
             "--name", "detect",
             "--exist-ok"
-        ]
+]
+
+        output_path = os.path.join("runs", "detect")
+        if os.path.exists(output_path):
+            shutil.rmtree(output_path)
+
+
         subprocess.run(command, check=True)
 
         # Search for latest image
@@ -112,6 +130,9 @@ def predictLive():
         print(f"Error starting live detection: {e}")
         return Response(f"Failed to start live detection: {str(e)}", status=500)
 
+@app.route("/health", methods=["GET"])
+def health_check():
+    return jsonify({"status": "API is up and running"}), 200
 
 if __name__ == "__main__":
     clApp = ClientApp()
